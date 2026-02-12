@@ -1,0 +1,37 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "variables": {
+    "GEMINI_API_KEY": {
+      "description": "API Key for Google Gemini (AI Studio)",
+      "required": false
+    },
+    "OPENAI_API_KEY": {
+      "description": "API Key for OpenAI (Optional if using Gemini)",
+      "required": false
+    },
+    "ANTHROPIC_API_KEY": {
+      "description": "API Key for Anthropic (Optional if using Gemini)",
+      "required": false
+    },
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Telegram Bot Token from @BotFather",
+      "required": true
+    },
+    "TELEGRAM_OWNER_ID": {
+      "description": "Your Telegram User ID",
+      "required": true
+    },
+    "OPENCLAW_MODEL_ALIAS": {
+      "description": "The preferred AI model (e.g., gemini, openai, anthropic). Set by the Wizard.",
+      "required": false
+    }
+  }
+}

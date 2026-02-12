@@ -1,0 +1,42 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clawbot is Live!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <div class="max-w-xl bg-gray-800 p-8 rounded-xl shadow-2xl text-center space-y-6 border-t-4 border-green-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h1 class="text-4xl font-extrabold">Success! Your Clawbot is Live!</h1>
+        <p class="text-gray-400">Your Autonomous SideHustle.AI agent has been securely provisioned and is now running on your isolated Railway service.</p>
+
+        <div class="bg-gray-700 p-4 rounded-lg space-y-2">
+            <h2 class="text-xl font-semibold text-green-400">Next Steps (Start Working!)</h2>
+            <p class="text-lg font-mono bg-gray-600 p-2 rounded-md inline-block">
+                @{{ BOT_USERNAME }}
+            </p>
+            <p class="text-sm text-gray-400">Search for the bot username above on Telegram and start chatting.</p>
+        </div>
+
+        <div class="pt-6 space-y-4 border-t border-gray-700 mt-6">
+            <h2 class="text-xl font-semibold text-white">Credit Management (Your Responsibility)</h2>
+            <p class="text-sm text-gray-400">Since you own the API keys, you manage your own credits. Ensure your billing is active to avoid service interruption.</p>
+            
+            <!-- Links for Top-Up (Placeholder for now, links to be added dynamically if possible) -->
+            <div class="flex flex-col space-y-2 text-sm">
+                <a href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">Google Gemini Billing Portal &rarr;</a>
+                <a href="https://platform.openai.com/usage" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">OpenAI Billing Portal &rarr;</a>
+                <a href="https://console.anthropic.com/usage" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">Anthropic Billing Portal &rarr;</a>
+            </div>
+
+            <!-- Placeholder for Video Tutorial -->
+            <p class="text-sm text-gray-400 pt-4">Video Tutorial: Link coming soon on how to check your specific API usage.</p>
+        </div>
+
+        <p class="text-xs text-gray-600 pt-6">This service is running on Railway.</p>
+    </div>
+</body>
+</html>

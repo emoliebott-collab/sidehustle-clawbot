@@ -1,0 +1,16 @@
+{
+  "name": "user-clawbot-service",
+  "version": "1.0.0",
+  "description": "Autonomous OpenClaw agent provisioned via SideHustle.AI.",
+  "main": "server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "openclaw": "latest"
+  }
+}

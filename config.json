@@ -1,0 +1,45 @@
+// File: sidehustle-ai/provisioning-template/config.json
+// Purpose: Configures the OpenClaw Gateway using environment variables injected by Railway.
+
+{
+  "agentId": "user-clawbot",
+  "match": {
+    "channel": "telegram",
+    "accountId": "default"
+  },
+  "security": {
+    "elevated": "deny",
+    "exec": "deny",
+    "file": "deny"
+  },
+  "channels": {
+    "telegram": {
+      // Bot token and owner ID are injected as secrets by the Railway deployment
+      "botToken": "$TELEGRAM_BOT_TOKEN", 
+      "allowFrom": [ "$TELEGRAM_OWNER_ID" ], 
+      "dmPolicy": "allowlist",
+      "groupPolicy": "deny"
+    }
+  },
+  "gateway": {
+    "mode": "remote",
+    "auth": {
+      "mode": "token"
+    }
+  },
+  "model": {
+    // These aliases must match the API keys injected via environment variables (Task 5 logic)
+    "primary": "$OPENCLAW_MODEL_ALIAS/model-name", // e.g., google/gemini-flash-latest
+    "fallbacks": []
+  },
+  "models": {
+    // Example: This block would need to be dynamically configured based on provider,
+    // but for the template, we'll use a placeholder structure.
+    "$OPENCLAW_MODEL_ALIAS/model-name": {
+      "alias": "$OPENCLAW_MODEL_ALIAS"
+      // The specific API key is pulled from the environment: 
+      // e.g., GEMINI_API_KEY, OPENAI_API_KEY, etc.
+      // The OpenClaw Gateway handles this lookup based on the model alias/provider.
+    }
+  }
+}
