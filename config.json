@@ -34,12 +34,7 @@
     }
   },
   "model": {
-    "primary": "$OPENCLAW_MODEL_ALIAS",
+    "primary": "${OPENCLAW_MODEL_ALIAS}",
     "fallbacks": []
-  },
-  "models": {
-    "$OPENCLAW_MODEL_ALIAS": {
-      "alias": "$OPENCLAW_MODEL_ALIAS"
-    }
   }
 }
