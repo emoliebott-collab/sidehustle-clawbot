@@ -1,5 +1,8 @@
 {
   "agentId": "user-clawbot",
+  "database": {
+    "path": "/app/data/openclaw.sqlite"
+  },
   "match": {
     "channel": "telegram",
     "accountId": "default"

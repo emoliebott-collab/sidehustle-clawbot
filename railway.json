@@ -33,5 +33,11 @@
       "description": "The preferred AI model (e.g., gemini, openai, anthropic). Set by the Wizard.",
       "required": false
     }
+  },
+  "volumes": {
+    "/app/data": {
+      "size": 5120,
+      "description": "Persistent storage for OpenClaw database and state"
+    }
   }
 }

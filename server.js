@@ -1,11 +1,39 @@
 // File: sidehustle-ai/provisioning-template/server.js
 // Purpose: Entry point for the Railway service. Runs OpenClaw with the provided config.
+// CommonJS version with Volume support
 
-import { createServer } from 'http';
-import { readFileSync } from 'fs';
-import { exec } from 'child_process';
+const { createServer } = require('http');
+const { readFileSync, existsSync, mkdirSync } = require('fs');
+const { exec } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
+const VOLUME_PATH = '/app/data';
+const VOLUME_TIMEOUT = 60000; // 60 seconds
+const VOLUME_CHECK_INTERVAL = 1000; // 1 second
+
+// Wait for Volume to be mounted (Railway persistent storage)
+function waitForVolume() {
+    return new Promise((resolve, reject) => {
+        console.log(`Waiting for volume at ${VOLUME_PATH}...`);
+        
+        const startTime = Date.now();
+        
+        const checkVolume = () => {
+            if (existsSync(VOLUME_PATH)) {
+                console.log(`Volume mounted at ${VOLUME_PATH} - ready!`);
+                resolve(true);
+            } else if (Date.now() - startTime > VOLUME_TIMEOUT) {
+                console.error(`Volume timeout after ${VOLUME_TIMEOUT/1000}s - proceeding anyway`);
+                resolve(false);
+            } else {
+                console.log(`Waiting for volume... (${Math.floor((Date.now() - startTime)/1000)}s)`);
+                setTimeout(checkVolume, VOLUME_CHECK_INTERVAL);
+            }
+        };
+        
+        checkVolume();
+    });
+}
 
 // Function to start the OpenClaw service in the background
 function startOpenClaw() {
@@ -43,8 +71,16 @@ const server = createServer((req, res) => {
     }
 });
 
-server.listen(PORT, () => {
-    console.log(`Web server listening on port ${PORT}`);
-    // Start OpenClaw immediately after the web server is up
-    startOpenClaw();
-});
+// Pre-flight: wait for volume, then start server
+async function init() {
+    // Wait for volume before starting
+    await waitForVolume();
+    
+    server.listen(PORT, () => {
+        console.log(`Web server listening on port ${PORT}`);
+        // Start OpenClaw after web server is ready
+        startOpenClaw();
+    });
+}
+
+init();

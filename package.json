@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Autonomous OpenClaw agent provisioned via SideHustle.AI.",
   "main": "server.js",
-  "type": "module",
   "engines": {
     "node": ">=22.12.0"
   },
   "scripts": {
+    "preinstall": "unset CI",
     "start": "node server.js"
   },
   "dependencies": {
