@@ -3,6 +3,13 @@
   "database": {
     "path": "/app/data/openclaw.sqlite"
   },
+  "auth": {
+    "profiles": {
+      "google:default": { "provider": "google", "mode": "api_key", "apiKey": "$GOOGLE_API_KEY" },
+      "openai:default": { "provider": "openai", "mode": "api_key", "apiKey": "$OPENAI_API_KEY" },
+      "anthropic:default": { "provider": "anthropic", "mode": "api_key", "apiKey": "$ANTHROPIC_API_KEY" }
+    }
+  },
   "match": {
     "channel": "telegram",
     "accountId": "default"
