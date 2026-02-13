@@ -9,8 +9,8 @@
     "restartPolicyMaxRetries": 10
   },
   "variables": {
-    "GEMINI_API_KEY": {
-      "description": "API Key for Google Gemini (AI Studio)",
+    "GOOGLE_API_KEY": {
+      "description": "API Key for Google AI (AI Studio)",
       "required": false
     },
     "OPENAI_API_KEY": {
