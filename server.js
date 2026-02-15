@@ -8,10 +8,10 @@ const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
 const VOLUME_PATH = '/app/data';
-const VOLUME_TIMEOUT = 60000;
-const VOLUME_CHECK_INTERVAL = 1000;
+const VOLUME_TIMEOUT = 60000; // 60 seconds
+const VOLUME_CHECK_INTERVAL = 1000; // 1 second
 
-// Wait for Volume to be mounted
+// Wait for Volume to be mounted (Railway persistent storage)
 function waitForVolume() {
   return new Promise((resolve) => {
     console.log(`Waiting for volume at ${VOLUME_PATH}...`);
@@ -24,6 +24,7 @@ function waitForVolume() {
         console.error(`Volume timeout after ${VOLUME_TIMEOUT/1000}s - proceeding anyway`);
         resolve(false);
       } else {
+        console.log(`Waiting for volume... (${Math.floor((Date.now() - startTime)/1000)}s)`);
         setTimeout(checkVolume, VOLUME_CHECK_INTERVAL);
       }
     };
@@ -98,13 +99,20 @@ function startOpenClaw() {
     detached: false,
     env: {
       ...process.env,
-      OPENCLAW_CONFIG_PATH: './config-runtime.json',
-      OPENCLAW_HOME: '/root/.openclaw'
+      OPENCLAW_CONFIG_PATH: './config-runtime.json'
+      // Do NOT set OPENCLAW_HOME - causes path nesting issues
     }
   });
 
-  openclaw.stdout.on('data', (data) => console.log(`[OpenClaw] ${data.toString().trim()}`));
-  openclaw.stderr.on('data', (data) => console.error(`[OpenClaw ERROR] ${data.toString().trim()}`));
+  openclaw.stdout.on('data', (data) => {
+    const output = data.toString().trim();
+    if (output) console.log(`[OpenClaw] ${output}`);
+  });
+
+  openclaw.stderr.on('data', (data) => {
+    const output = data.toString().trim();
+    if (output) console.error(`[OpenClaw ERROR] ${output}`);
+  });
 
   openclaw.on('exit', (code) => {
     if (code !== 0) {
@@ -154,11 +162,13 @@ async function init() {
   server.listen(PORT, () => {
     console.log(`✓ Web server listening on port ${PORT}`);
     console.log(`✓ Visit your Railway URL to see the success page`);
-    // Only start OpenClaw if we have real credentials
+    // Only start OpenClaw if we have real credentials (not a template build)
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) {
       startOpenClaw();
     } else {
       console.log('⚠️ OpenClaw not started - waiting for environment variables');
+      console.log(' This is normal for template builds');
+      console.log(' Real user deployments will start OpenClaw automatically');
     }
   });
 }
