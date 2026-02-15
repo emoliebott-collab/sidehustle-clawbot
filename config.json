@@ -1,23 +1,18 @@
 {
   "auth": {
     "profiles": {
-      "google:default": { "provider": "google", "mode": "api_key" },
-      "openai:default": { "provider": "openai", "mode": "api_key" },
-      "anthropic:default": { "provider": "anthropic", "mode": "api_key" }
+      "google:default": { "provider": "google", "mode": "api_key", "apiKey": "${GOOGLE_API_KEY}" },
+      "openai:default": { "provider": "openai", "mode": "api_key", "apiKey": "${OPENAI_API_KEY}" },
+      "anthropic:default": { "provider": "anthropic", "mode": "api_key", "apiKey": "${ANTHROPIC_API_KEY}" }
     }
   },
   "agents": {
     "defaults": {
-      "model": { "primary": "$OPENCLAW_MODEL_ALIAS", "fallbacks": [] },
+      "model": { "primary": "${OPENCLAW_MODEL_ALIAS}", "fallbacks": [] },
       "models": {}
     },
     "list": [
-      {
-        "id": "main",
-        "tools": {
-          "allow": [ "web_search", "web_fetch" ]
-        }
-      }
+      { "id": "main", "tools": { "allow": ["web_search", "web_fetch"] } }
     ]
   },
   "bindings": [
@@ -26,8 +21,8 @@
   "channels": {
     "telegram": {
       "dmPolicy": "allowlist",
-      "botToken": "$TELEGRAM_BOT_TOKEN",
-      "allowFrom": ["$TELEGRAM_OWNER_ID"],
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": ["${TELEGRAM_OWNER_ID}"],
       "groupPolicy": "disabled"
     }
   },
