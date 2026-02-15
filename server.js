@@ -1,6 +1,6 @@
 // File: sidehustle-ai/provisioning-template/server.js
 // Purpose: Entry point for the Railway service. Runs OpenClaw with the provided config.
-// Handles environment variable substitution and model parsing
+// Handles environment variable substitution and model alias parsing
 const { createServer } = require('http');
 const { readFileSync, existsSync, writeFileSync } = require('fs');
 const { spawn } = require('child_process');

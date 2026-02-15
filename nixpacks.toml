@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_24", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm ci --omit=dev 2>/dev/null || npm i"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "node server.js"
+
+[variables]
+CI = "false"
