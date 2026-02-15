@@ -172,7 +172,7 @@ function startOpenClaw() {
     env: {
       ...process.env,
       OPENCLAW_CONFIG_PATH: './config-runtime.json', // Official env var name
-      OPENCLAW_HOME: '/root/.openclaw' // Explicitly set home directory
+      OPENCLAW_HOME: '/root' // Explicitly set home directory
     }
   });
 
