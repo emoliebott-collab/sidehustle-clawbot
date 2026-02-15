@@ -8,10 +8,10 @@ const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
 const VOLUME_PATH = '/app/data';
-const VOLUME_TIMEOUT = 60000; // 60 seconds
-const VOLUME_CHECK_INTERVAL = 1000; // 1 second
+const VOLUME_TIMEOUT = 60000;
+const VOLUME_CHECK_INTERVAL = 1000;
 
-// Wait for Volume to be mounted (Railway persistent storage)
+// Wait for Volume to be mounted
 function waitForVolume() {
   return new Promise((resolve) => {
     console.log(`Waiting for volume at ${VOLUME_PATH}...`);
@@ -24,7 +24,6 @@ function waitForVolume() {
         console.error(`Volume timeout after ${VOLUME_TIMEOUT/1000}s - proceeding anyway`);
         resolve(false);
       } else {
-        console.log(`Waiting for volume... (${Math.floor((Date.now() - startTime)/1000)}s)`);
         setTimeout(checkVolume, VOLUME_CHECK_INTERVAL);
       }
     };
@@ -42,16 +41,17 @@ function provisionAgentAuth() {
       console.log(`✓ Created agent directory: ${agentAuthDir}`);
     }
 
-    // Build auth profiles (no apiKey field - OpenClaw reads from env vars)
+    // Build auth profiles WITH apiKey for the physical file
+    // The agent needs the actual key in the file, not just the profile definition
     const authProfiles = {};
     if (process.env.GOOGLE_API_KEY) {
-      authProfiles['google:default'] = { provider: 'google', mode: 'api_key' };
+      authProfiles['google:default'] = { provider: 'google', mode: 'api_key', apiKey: process.env.GOOGLE_API_KEY };
     }
     if (process.env.OPENAI_API_KEY) {
-      authProfiles['openai:default'] = { provider: 'openai', mode: 'api_key' };
+      authProfiles['openai:default'] = { provider: 'openai', mode: 'api_key', apiKey: process.env.OPENAI_API_KEY };
     }
     if (process.env.ANTHROPIC_API_KEY) {
-      authProfiles['anthropic:default'] = { provider: 'anthropic', mode: 'api_key' };
+      authProfiles['anthropic:default'] = { provider: 'anthropic', mode: 'api_key', apiKey: process.env.ANTHROPIC_API_KEY };
     }
 
     // Write auth-profiles.json to agent directory
