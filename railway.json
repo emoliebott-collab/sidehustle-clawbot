@@ -9,6 +9,10 @@
     "restartPolicyMaxRetries": 10
   },
   "variables": {
+    "CI": {
+      "description": "CI environment flag (must be false for OpenClaw build)",
+      "default": "false"
+    },
     "GOOGLE_API_KEY": {
       "description": "API Key for Google AI (AI Studio)",
       "required": false
