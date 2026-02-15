@@ -22,8 +22,8 @@
   "channels": {
     "telegram": {
       "enabled": true,
-      "botToken": "$TELEGRAM_BOT_TOKEN", 
-      "allowFrom": [ "$TELEGRAM_OWNER_ID" ], 
+      "botToken": "$TELEGRAM_BOT_TOKEN",
+      "allowFrom": [ "$TELEGRAM_OWNER_ID" ],
       "dmPolicy": "allowlist",
       "groupPolicy": "disabled"
     }
