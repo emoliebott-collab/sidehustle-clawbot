@@ -8,10 +8,10 @@ const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
 const VOLUME_PATH = '/app/data';
-const VOLUME_TIMEOUT = 60000;
-const VOLUME_CHECK_INTERVAL = 1000;
+const VOLUME_TIMEOUT = 60000; // 60 seconds
+const VOLUME_CHECK_INTERVAL = 1000; // 1 second
 
-// Wait for Volume to be mounted
+// Wait for Volume to be mounted (Railway persistent storage)
 function waitForVolume() {
   return new Promise((resolve) => {
     console.log(`Waiting for volume at ${VOLUME_PATH}...`);
@@ -56,9 +56,11 @@ function provisionAgentAuth() {
 
     // Write auth-profiles.json to agent directory
     const authProfilesPath = `${agentAuthDir}/auth-profiles.json`;
-    writeFileSync(authProfilesPath, JSON.stringify(authProfiles, null, 2));
+    const authContent = JSON.stringify(authProfiles, null, 2);
+    writeFileSync(authProfilesPath, authContent);
     console.log(`✓ Wrote auth profiles to: ${authProfilesPath}`);
     console.log(`✓ Configured ${Object.keys(authProfiles).length} auth profile(s)`);
+    console.log(`DEBUG: Auth content:\n${authContent}`);
     return true;
   } catch (error) {
     console.error('Error provisioning agent auth:', error);
