@@ -1,6 +1,6 @@
 // File: sidehustle-ai/provisioning-template/server.js
 // Purpose: Entry point for the Railway service. Runs OpenClaw with the provided config.
-// Handles environment variable substitution and model alias parsing
+// Handles environment variable substitution and model parsing for OpenClaw 2026.2.x
 const { createServer } = require('http');
 const { readFileSync, existsSync, writeFileSync } = require('fs');
 const { spawn } = require('child_process');
@@ -69,49 +69,46 @@ function processConfig() {
       }
     }
 
-    // Parse model alias
-    const modelInfo = parseModelAlias(envVars.OPENCLAW_MODEL_ALIAS);
+    // Check if this is a template build (no env vars set)
+    const isTemplateBuild = !envVars.TELEGRAM_BOT_TOKEN && !envVars.OPENCLAW_MODEL_ALIAS;
+    if (isTemplateBuild) {
+      console.log('⚠️ Template build detected - using placeholder values');
+      console.log(' Real deployments will use actual environment variables');
+    }
+
+    // Parse model alias - use default if not set (for template builds)
+    const modelAlias = envVars.OPENCLAW_MODEL_ALIAS || 'google/gemini-1.5-flash';
+    const modelInfo = parseModelAlias(modelAlias);
     if (!modelInfo) {
-      console.error('Failed to parse OPENCLAW_MODEL_ALIAS. Exiting.');
+      console.error(`Failed to parse OPENCLAW_MODEL_ALIAS: ${modelAlias}. Exiting.`);
       return null;
     }
     console.log(`Parsed model: Provider="${modelInfo.provider}", Model="${modelInfo.model}"`);
 
-    // Substitute environment variables in auth profiles
-    if (config.auth && config.auth.profiles) {
-      for (const profileKey in config.auth.profiles) {
-        const profile = config.auth.profiles[profileKey];
-        if (profile.apiKey) {
-          if (profile.apiKey === '$GOOGLE_API_KEY') {
-            profile.apiKey = envVars.GOOGLE_API_KEY;
-          } else if (profile.apiKey === '$OPENAI_API_KEY') {
-            profile.apiKey = envVars.OPENAI_API_KEY;
-          } else if (profile.apiKey === '$ANTHROPIC_API_KEY') {
-            profile.apiKey = envVars.ANTHROPIC_API_KEY;
-          }
-        }
-      }
+    // Set API keys in environment for OpenClaw to use
+    // OpenClaw 2026.2.x reads API keys from environment variables, not from config
+    if (envVars.GOOGLE_API_KEY) {
+      process.env.GOOGLE_API_KEY = envVars.GOOGLE_API_KEY;
+    }
+    if (envVars.OPENAI_API_KEY) {
+      process.env.OPENAI_API_KEY = envVars.OPENAI_API_KEY;
+    }
+    if (envVars.ANTHROPIC_API_KEY) {
+      process.env.ANTHROPIC_API_KEY = envVars.ANTHROPIC_API_KEY;
     }
 
     // Substitute Telegram configuration
     if (config.channels && config.channels.telegram) {
-      config.channels.telegram.botToken = envVars.TELEGRAM_BOT_TOKEN;
-      config.channels.telegram.allowFrom = [envVars.TELEGRAM_OWNER_ID];
+      config.channels.telegram.botToken = envVars.TELEGRAM_BOT_TOKEN || 'PLACEHOLDER_TOKEN';
+      config.channels.telegram.allowFrom = envVars.TELEGRAM_OWNER_ID ? [parseInt(envVars.TELEGRAM_OWNER_ID)] : [0];
     }
 
     // Set primary model to the full alias
-    if (config.model) {
-      config.model.primary = modelInfo.fullAlias;
+    if (config.agents && config.agents.defaults && config.agents.defaults.model) {
+      config.agents.defaults.model.primary = modelInfo.fullAlias;
+      // Add model configuration in agents.defaults.models
+      config.agents.defaults.models = { [modelInfo.fullAlias]: {} };
     }
-
-    // Add models section with parsed model information
-    config.models = {
-      [modelInfo.fullAlias]: {
-        provider: modelInfo.provider,
-        model: modelInfo.model,
-        auth: `${modelInfo.provider}:default`
-      }
-    };
 
     // Write processed config
     const processedConfig = JSON.stringify(config, null, 2);
@@ -212,8 +209,14 @@ async function init() {
   server.listen(PORT, () => {
     console.log(`✓ Web server listening on port ${PORT}`);
     console.log(`✓ Visit your Railway URL to see the success page`);
-    // Start OpenClaw
-    startOpenClaw();
+    // Only start OpenClaw if we have real credentials (not a template build)
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) {
+      startOpenClaw();
+    } else {
+      console.log('⚠️ OpenClaw not started - waiting for environment variables');
+      console.log(' This is normal for template builds');
+      console.log(' Real user deployments will start OpenClaw automatically');
+    }
   });
 }
 
