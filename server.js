@@ -1,17 +1,16 @@
 // File: sidehustle-ai/provisioning-template/server.js
-// Purpose: Entry point for the Railway service
-// Uses OpenClaw's native ${VARIABLE} syntax in config.json
+// Purpose: Entry point for the Railway service.
+// Features: Direct Key Injection into runtime config to ensure agent auth success.
 
 const { createServer } = require('http');
-const { readFileSync, existsSync, writeFileSync, mkdirSync } = require('fs');
+const { readFileSync, existsSync, writeFileSync } = require('fs');
 const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
 const VOLUME_PATH = '/app/data';
-const VOLUME_TIMEOUT = 60000; // 60 seconds
-const VOLUME_CHECK_INTERVAL = 1000; // 1 second
+const VOLUME_TIMEOUT = 60000;
+const VOLUME_CHECK_INTERVAL = 1000;
 
-// Wait for Volume to be mounted (Railway persistent storage)
 function waitForVolume() {
   return new Promise((resolve) => {
     console.log(`Waiting for volume at ${VOLUME_PATH}...`);
@@ -31,68 +30,34 @@ function waitForVolume() {
   });
 }
 
-// Provision agent auth profiles physically on disk (insurance policy)
-function provisionAgentAuth() {
-  console.log('=== Provisioning Agent Auth (Insurance) ===');
-  try {
-    const agentAuthDir = '/root/.openclaw/agents/main/agent';
-    if (!existsSync(agentAuthDir)) {
-      mkdirSync(agentAuthDir, { recursive: true });
-      console.log(`✓ Created agent directory: ${agentAuthDir}`);
-    }
-
-    // Build auth profiles WITH apiKey for the physical file
-    // The agent needs the actual key in the file, not just the profile definition
-    const authProfiles = {};
-    if (process.env.GOOGLE_API_KEY) {
-      authProfiles['google:default'] = { provider: 'google', mode: 'api_key', apiKey: process.env.GOOGLE_API_KEY };
-    }
-    if (process.env.OPENAI_API_KEY) {
-      authProfiles['openai:default'] = { provider: 'openai', mode: 'api_key', apiKey: process.env.OPENAI_API_KEY };
-    }
-    if (process.env.ANTHROPIC_API_KEY) {
-      authProfiles['anthropic:default'] = { provider: 'anthropic', mode: 'api_key', apiKey: process.env.ANTHROPIC_API_KEY };
-    }
-
-    // Write auth-profiles.json to agent directory
-    const authProfilesPath = `${agentAuthDir}/auth-profiles.json`;
-    const authContent = JSON.stringify(authProfiles, null, 2);
-    writeFileSync(authProfilesPath, authContent);
-    console.log(`✓ Wrote auth profiles to: ${authProfilesPath}`);
-    console.log(`✓ Configured ${Object.keys(authProfiles).length} auth profile(s)`);
-    console.log(`DEBUG: Auth content:\n${authContent}`);
-    return true;
-  } catch (error) {
-    console.error('Error provisioning agent auth:', error);
-    return false;
-  }
-}
-
-// Start OpenClaw Gateway
 function startOpenClaw() {
   console.log('=== Starting OpenClaw Gateway ===');
 
-  // Process config to substitute TELEGRAM_OWNER_ID as integer
   try {
     const configTemplate = readFileSync('./config.json', 'utf8');
     let config = JSON.parse(configTemplate);
 
-    // Substitute model alias
-    if (config.agents?.defaults?.model?.primary) {
-      config.agents.defaults.model.primary = process.env.OPENCLAW_MODEL_ALIAS || 'google/gemini-1.5-flash';
+    // DIRECT KEY INJECTION: Replace placeholders with real values from Environment
+    if (config.auth?.profiles) {
+        if (process.env.GOOGLE_API_KEY) config.auth.profiles['google:default'].apiKey = process.env.GOOGLE_API_KEY;
+        if (process.env.OPENAI_API_KEY) config.auth.profiles['openai:default'].apiKey = process.env.OPENAI_API_KEY;
+        if (process.env.ANTHROPIC_API_KEY) config.auth.profiles['anthropic:default'].apiKey = process.env.ANTHROPIC_API_KEY;
     }
 
-    // Substitute Telegram config
+    // Model and Telegram Substitution
+    if (config.agents?.defaults?.model) {
+      config.agents.defaults.model.primary = process.env.OPENCLAW_MODEL_ALIAS || 'google/gemini-1.5-flash';
+    }
     if (config.channels?.telegram) {
       config.channels.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN || 'PLACEHOLDER';
       config.channels.telegram.allowFrom = process.env.TELEGRAM_OWNER_ID ? [parseInt(process.env.TELEGRAM_OWNER_ID)] : [0];
     }
 
-    // Write runtime config
+    // Write the "Hot" runtime config with real data
     writeFileSync('./config-runtime.json', JSON.stringify(config, null, 2));
-    console.log('✓ Processed config with substitutions');
+    console.log('✓ Runtime configuration baked with real API keys.');
   } catch (error) {
-    console.error('Error processing config:', error);
+    console.error('Error baking config:', error);
     process.exit(1);
   }
 
@@ -102,32 +67,19 @@ function startOpenClaw() {
     env: {
       ...process.env,
       OPENCLAW_CONFIG_PATH: './config-runtime.json'
-      // Do NOT set OPENCLAW_HOME - causes path nesting issues
     }
   });
 
-  openclaw.stdout.on('data', (data) => {
-    const output = data.toString().trim();
-    if (output) console.log(`[OpenClaw] ${output}`);
-  });
-
-  openclaw.stderr.on('data', (data) => {
-    const output = data.toString().trim();
-    if (output) console.error(`[OpenClaw ERROR] ${output}`);
-  });
+  openclaw.stdout.on('data', (data) => console.log(`[OpenClaw] ${data.toString().trim()}`));
+  openclaw.stderr.on('data', (data) => console.error(`[OpenClaw ERROR] ${data.toString().trim()}`));
 
   openclaw.on('exit', (code) => {
-    if (code !== 0) {
-      console.error(`[OpenClaw] Process exited with code ${code}`);
-      process.exit(1);
-    }
+    if (code !== 0) process.exit(1);
   });
 
   console.log(`[OpenClaw] Process started with PID: ${openclaw.pid}`);
-  console.log(`[OpenClaw] Using config: ./config-runtime.json`);
 }
 
-// HTTP server for success page
 const server = createServer((req, res) => {
   if (req.url === '/') {
     try {
@@ -135,42 +87,25 @@ const server = createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
     } catch (e) {
-      console.error('Error serving start-page.html:', e);
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.writeHead(500);
       res.end('Error loading page');
     }
-  } else if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
   } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.writeHead(404);
     res.end('Not Found');
   }
 });
 
-// Main initialization
 async function init() {
   console.log('=== Clawbot Service Starting ===');
-  console.log(`Node version: ${process.version}`);
-  console.log(`Platform: ${process.platform}`);
-
-  // Wait for volume
   await waitForVolume();
-
-  // Provision agent auth (insurance policy)
-  provisionAgentAuth();
-
-  // Start web server
+  
   server.listen(PORT, () => {
     console.log(`✓ Web server listening on port ${PORT}`);
-    console.log(`✓ Visit your Railway URL to see the success page`);
-    // Only start OpenClaw if we have real credentials (not a template build)
-    if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) {
+    if (process.env.TELEGRAM_BOT_TOKEN) {
       startOpenClaw();
     } else {
-      console.log('⚠️ OpenClaw not started - waiting for environment variables');
-      console.log(' This is normal for template builds');
-      console.log(' Real user deployments will start OpenClaw automatically');
+      console.log('⚠️ Template build - waiting for variables');
     }
   });
 }
