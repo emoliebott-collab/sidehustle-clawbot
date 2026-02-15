@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_24", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci --omit=dev 2>/dev/null || npm i"]
+cmds = ["CI=false npm ci --omit=dev 2>/dev/null || CI=false npm i"]
 
 [phases.build]
 cmds = []
