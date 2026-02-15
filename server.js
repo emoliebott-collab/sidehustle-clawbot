@@ -235,4 +235,36 @@ async function init() {
   console.log(`Node version: ${process.version}`);
   console.log(`Platform: ${process.platform}`);
 
-  // Wait for volume await waitForVolume(); // Process configuration const configReady = processConfig(); if (!configReady) { console.error('❌ Configuration processing failed. Exiting.'); process.exit(1); } // Provision agent auth profiles const authReady = provisionAgentAuth(); if (!authReady) { console.error('❌ Agent auth provisioning failed. Exiting.'); process.exit(1); } // Start web server server.listen(PORT, () => { console.log(`✓ Web server listening on port ${PORT}`); console.log(`✓ Visit your Railway URL to see the success page`); // Only start OpenClaw if we have real credentials (not a template build) if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) { startOpenClaw(); } else { console.log('⚠️ OpenClaw not started - waiting for environment variables'); console.log(' This is normal for template builds'); console.log(' Real user deployments will start OpenClaw automatically'); } }); } init();
+  // Wait for volume
+  await waitForVolume();
+
+  // Process configuration
+  const configReady = processConfig();
+  if (!configReady) {
+    console.error('❌ Configuration processing failed. Exiting.');
+    process.exit(1);
+  }
+
+  // Provision agent auth profiles
+  const authReady = provisionAgentAuth();
+  if (!authReady) {
+    console.error('❌ Agent auth provisioning failed. Exiting.');
+    process.exit(1);
+  }
+
+  // Start web server
+  server.listen(PORT, () => {
+    console.log(`✓ Web server listening on port ${PORT}`);
+    console.log(`✓ Visit your Railway URL to see the success page`);
+    // Only start OpenClaw if we have real credentials (not a template build)
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) {
+      startOpenClaw();
+    } else {
+      console.log('⚠️ OpenClaw not started - waiting for environment variables');
+      console.log(' This is normal for template builds');
+      console.log(' Real user deployments will start OpenClaw automatically');
+    }
+  });
+}
+
+init();
