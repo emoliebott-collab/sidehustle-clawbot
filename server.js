@@ -126,8 +126,9 @@ function processConfig() {
 // Start OpenClaw with proper logging
 function startOpenClaw() {
   console.log('=== Starting OpenClaw Gateway ===');
-  // OpenClaw uses OPENCLAW_CONFIG_PATH environment variable to specify config location
-  const openclaw = spawn('openclaw', ['gateway', 'start'], {
+  // Use 'run' instead of 'start' - 'start' tries to use systemctl which doesn't work in containers
+  // 'run' runs in foreground mode which is what we want for Docker/Railway
+  const openclaw = spawn('openclaw', ['gateway', 'run'], {
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
     env: {
