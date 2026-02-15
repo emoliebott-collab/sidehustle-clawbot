@@ -14,6 +14,9 @@
     "list": [
       {
         "id": "main",
+        "auth": {
+          "profiles": { "google": "google:default", "openai": "openai:default", "anthropic": "anthropic:default" }
+        },
         "tools": {
           "allow": [ "web_search", "web_fetch" ]
         }

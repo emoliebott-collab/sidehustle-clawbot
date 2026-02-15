@@ -2,7 +2,7 @@
 // Purpose: Entry point for the Railway service. Runs OpenClaw with the provided config.
 // Handles environment variable substitution and model parsing for OpenClaw 2026.2.x
 const { createServer } = require('http');
-const { readFileSync, existsSync, writeFileSync } = require('fs');
+const { readFileSync, existsSync, writeFileSync, mkdirSync } = require('fs');
 const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
@@ -123,6 +123,43 @@ function processConfig() {
   }
 }
 
+// Provision agent auth profiles physically on disk
+// OpenClaw agents look for auth-profiles.json in their agent directory
+function provisionAgentAuth() {
+  console.log('=== Provisioning Agent Auth ===');
+  try {
+    const agentAuthDir = '/root/.openclaw/agents/main/agent';
+    
+    // Create agent directory if it doesn't exist
+    if (!existsSync(agentAuthDir)) {
+      mkdirSync(agentAuthDir, { recursive: true });
+      console.log(`✓ Created agent directory: ${agentAuthDir}`);
+    }
+
+    // Build auth profiles from environment variables
+    const authProfiles = {};
+    if (process.env.GOOGLE_API_KEY) {
+      authProfiles['google:default'] = { provider: 'google', mode: 'api_key', apiKey: process.env.GOOGLE_API_KEY };
+    }
+    if (process.env.OPENAI_API_KEY) {
+      authProfiles['openai:default'] = { provider: 'openai', mode: 'api_key', apiKey: process.env.OPENAI_API_KEY };
+    }
+    if (process.env.ANTHROPIC_API_KEY) {
+      authProfiles['anthropic:default'] = { provider: 'anthropic', mode: 'api_key', apiKey: process.env.ANTHROPIC_API_KEY };
+    }
+
+    // Write auth-profiles.json to agent directory
+    const authProfilesPath = `${agentAuthDir}/auth-profiles.json`;
+    writeFileSync(authProfilesPath, JSON.stringify(authProfiles, null, 2));
+    console.log(`✓ Wrote auth profiles to: ${authProfilesPath}`);
+    console.log(`✓ Configured ${Object.keys(authProfiles).length} auth profile(s)`);
+    return true;
+  } catch (error) {
+    console.error('Error provisioning agent auth:', error);
+    return false;
+  }
+}
+
 // Start OpenClaw with proper logging
 function startOpenClaw() {
   console.log('=== Starting OpenClaw Gateway ===');
@@ -203,6 +240,13 @@ async function init() {
   const configReady = processConfig();
   if (!configReady) {
     console.error('❌ Configuration processing failed. Exiting.');
+    process.exit(1);
+  }
+
+  // Provision agent auth profiles
+  const authReady = provisionAgentAuth();
+  if (!authReady) {
+    console.error('❌ Agent auth provisioning failed. Exiting.');
     process.exit(1);
   }
 
