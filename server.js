@@ -129,7 +129,15 @@ function processConfig() {
 // Start OpenClaw with proper logging
 function startOpenClaw() {
   console.log('=== Starting OpenClaw Gateway ===');
-  const openclaw = spawn('openclaw', ['gateway', 'start', '--config', './config-runtime.json'], { stdio: ['ignore', 'pipe', 'pipe'], detached: false });
+  // OpenClaw uses OPENCLAW_CONFIG_PATH environment variable to specify config location
+  const openclaw = spawn('openclaw', ['gateway', 'start'], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: false,
+    env: {
+      ...process.env,
+      OPENCLAW_CONFIG_PATH: './config-runtime.json' // Official env var name
+    }
+  });
 
   openclaw.stdout.on('data', (data) => {
     const output = data.toString().trim();
@@ -160,6 +168,7 @@ function startOpenClaw() {
   });
 
   console.log(`[OpenClaw] Process started with PID: ${openclaw.pid}`);
+  console.log(`[OpenClaw] Using config: ./config-runtime.json`);
 }
 
 // HTTP server for success page
