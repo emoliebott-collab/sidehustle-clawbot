@@ -28,7 +28,7 @@
       "dmPolicy": "allowlist",
       "botToken": "$TELEGRAM_BOT_TOKEN",
       "allowFrom": ["$TELEGRAM_OWNER_ID"],
-      "groupPolicy": "deny"
+      "groupPolicy": "disabled"
     }
   },
   "gateway": {
