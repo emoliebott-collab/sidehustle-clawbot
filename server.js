@@ -35,36 +35,42 @@ function provisionAgentAuth() {
   console.log('=== Provisioning Agent Auth File ===');
   try {
     const { mkdirSync } = require('fs');
-    const agentAuthDir = '/root/.openclaw/agents/main/agent';
+    const homeDir = process.env.HOME || '/root';
+    const agentAuthDir = `${homeDir}/.openclaw/agents/main/agent`;
+    
+    console.log(`Using OpenClaw home: ${homeDir}`);
     
     if (!existsSync(agentAuthDir)) {
       mkdirSync(agentAuthDir, { recursive: true });
       console.log(`✓ Created: ${agentAuthDir}`);
     }
     
-    const authProfiles = {};
+    const authProfiles = {
+      version: 1,
+      profiles: {}
+    };
     
     if (process.env.GOOGLE_API_KEY) {
-      authProfiles['google:default'] = {
+      authProfiles.profiles['google:default'] = {
+        type: 'api_key',
         provider: 'google',
-        mode: 'api_key',
-        apiKey: process.env.GOOGLE_API_KEY
+        key: process.env.GOOGLE_API_KEY
       };
     }
     
     if (process.env.OPENAI_API_KEY) {
-      authProfiles['openai:default'] = {
+      authProfiles.profiles['openai:default'] = {
+        type: 'api_key',
         provider: 'openai',
-        mode: 'api_key',
-        apiKey: process.env.OPENAI_API_KEY
+        key: process.env.OPENAI_API_KEY
       };
     }
     
     if (process.env.ANTHROPIC_API_KEY) {
-      authProfiles['anthropic:default'] = {
+      authProfiles.profiles['anthropic:default'] = {
+        type: 'api_key',
         provider: 'anthropic',
-        mode: 'api_key',
-        apiKey: process.env.ANTHROPIC_API_KEY
+        key: process.env.ANTHROPIC_API_KEY
       };
     }
     
@@ -72,7 +78,7 @@ function provisionAgentAuth() {
     const authContent = JSON.stringify(authProfiles, null, 2);
     writeFileSync(authPath, authContent);
     console.log(`✓ Wrote physical auth file: ${authPath}`);
-    console.log(`✓ Keys configured: ${Object.keys(authProfiles).length}`);
+    console.log(`✓ Keys configured: ${Object.keys(authProfiles.profiles).length}`);
     console.log(`DEBUG - File contents:\n${authContent}`);
     
     return true;
@@ -116,7 +122,11 @@ function startOpenClaw() {
     detached: false,
     env: {
       ...process.env,
-      OPENCLAW_CONFIG_PATH: './config-runtime.json'
+      OPENCLAW_CONFIG_PATH: './config-runtime.json',
+      // Explicitly set API keys in the EXACT format OpenClaw expects
+      GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || '',
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || ''
     }
   });
 
