@@ -1,9 +1,9 @@
 // File: sidehustle-ai/provisioning-template/server.js
 // Purpose: Entry point for the Railway service
-// FINAL APPROACH: Remove ALL apiKey logic from config, rely on physical auth file provisioning
+// FINAL APPROACH: Remove ALL apiKey logic, rely ONLY on environment variables
 
 const { createServer } = require('http');
-const { readFileSync, existsSync, writeFileSync, mkdirSync } = require('fs');
+const { readFileSync, existsSync, writeFileSync } = require('fs');
 const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
@@ -31,10 +31,10 @@ function waitForVolume() {
 }
 
 // Provision physical auth file for agent
-// This bypasses OpenClaw Gateway config validation while ensuring the agent has keys
 function provisionAgentAuth() {
   console.log('=== Provisioning Agent Auth File ===');
   try {
+    const { mkdirSync } = require('fs');
     const agentAuthDir = '/root/.openclaw/agents/main/agent';
     
     if (!existsSync(agentAuthDir)) {
@@ -69,9 +69,11 @@ function provisionAgentAuth() {
     }
     
     const authPath = `${agentAuthDir}/auth-profiles.json`;
-    writeFileSync(authPath, JSON.stringify(authProfiles, null, 2));
+    const authContent = JSON.stringify(authProfiles, null, 2);
+    writeFileSync(authPath, authContent);
     console.log(`✓ Wrote physical auth file: ${authPath}`);
     console.log(`✓ Keys configured: ${Object.keys(authProfiles).length}`);
+    console.log(`DEBUG - File contents:\n${authContent}`);
     
     return true;
   } catch (error) {
@@ -83,18 +85,17 @@ function provisionAgentAuth() {
 function startOpenClaw() {
   console.log('=== Starting OpenClaw Gateway ===');
   
-  // DEBUG: Log key availability
-  console.log('Key Status:');
-  console.log(`  GOOGLE_API_KEY: ${process.env.GOOGLE_API_KEY ? '[PRESENT]' : '[MISSING]'}`);
-  console.log(`  OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '[PRESENT]' : '[MISSING]'}`);
-  console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '[PRESENT]' : '[MISSING]'}`);
+  // DEBUG: Log environment variables
+  console.log('Environment variables being passed to OpenClaw:');
+  console.log(`  GOOGLE_API_KEY: ${process.env.GOOGLE_API_KEY ? '[SET]' : '[NOT SET]'}`);
+  console.log(`  OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '[SET]' : '[NOT SET]'}`);
+  console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '[SET]' : '[NOT SET]'}`);
 
   try {
     const configTemplate = readFileSync('./config.json', 'utf8');
     let config = JSON.parse(configTemplate);
 
-    // Dynamic configuration via env vars
-    // Note: apiKey fields are NOT set here to satisfy the gateway validator
+    // Only substitute model and Telegram config - NO apiKey fields
     if (config.agents?.defaults?.model) {
       config.agents.defaults.model.primary = process.env.OPENCLAW_MODEL_ALIAS || 'google/gemini-1.5-flash';
     }
@@ -104,7 +105,7 @@ function startOpenClaw() {
     }
 
     writeFileSync('./config-runtime.json', JSON.stringify(config, null, 2));
-    console.log('✓ Runtime config generated (Telegram + Model)');
+    console.log('✓ Processed config (model + Telegram only)');
   } catch (error) {
     console.error('Error processing config:', error);
     process.exit(1);
@@ -136,10 +137,10 @@ function startOpenClaw() {
     }
   });
 
-  console.log(`[OpenClaw] Process started (PID: ${openclaw.pid})`);
+  console.log(`[OpenClaw] Process started with PID: ${openclaw.pid}`);
+  console.log(`[OpenClaw] Using config: ./config-runtime.json`);
 }
 
-// Minimal success page server
 const server = createServer((req, res) => {
   if (req.url === '/') {
     try {
@@ -147,32 +148,38 @@ const server = createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
     } catch (e) {
+      console.error('Error serving start-page.html:', e);
       res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Error loading success page');
+      res.end('Error loading page');
     }
   } else if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok' }));
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
   } else {
-    res.writeHead(404);
-    res.end();
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   }
 });
 
 async function init() {
-  console.log('=== SideHustle.AI Clawbot Initialization ===');
-  
+  console.log('=== Clawbot Service Starting ===');
+  console.log(`Node version: ${process.version}`);
+  console.log(`Platform: ${process.platform}`);
+
   await waitForVolume();
+
+  // Provision physical auth file
   provisionAgentAuth();
 
   server.listen(PORT, () => {
-    console.log(`✓ Success page active on port ${PORT}`);
+    console.log(`✓ Web server listening on port ${PORT}`);
+    console.log(`✓ Visit your Railway URL to see the success page`);
     
-    if (process.env.TELEGRAM_BOT_TOKEN && (process.env.GOOGLE_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)) {
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.OPENCLAW_MODEL_ALIAS) {
       startOpenClaw();
     } else {
-      console.log('⚠️  OpenClaw initialization skipped: Missing Telegram token or API keys.');
-      console.log('   Template is ready for environment variable injection.');
+      console.log('⚠️  OpenClaw not started - waiting for environment variables');
+      console.log('   This is normal for template builds');
     }
   });
 }
